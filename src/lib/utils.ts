@@ -1,11 +1,11 @@
-import { exportToExcel } from "@/src/utils/excelExport";
+import { exportToExcel } from "@/utils/excelExport";
 import { type ClassValue, clsx } from "clsx";
 import { log } from "console";
 import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 import * as XLS from "xlsx";
 import { readFile, utils, writeFile } from "xlsx";
-import { IApiResponse } from "@/src/data/interface/IApiResponse";
+import { IApiResponse } from "@/data/interface/IApiResponse";
 
 
 export function cn(...inputs: ClassValue[]) {

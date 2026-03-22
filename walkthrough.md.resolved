@@ -1,0 +1,46 @@
+# Role and Menu Management Implementation
+
+I have implemented a comprehensive system for managing user roles and menu visibility based on permissions.
+
+## Changes Made
+
+### Backend
+
+- **Entity Fixes**: Updated [MenuPermission.cs](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/Entities/Core/Access%20Control/MenuPermission.cs) to use `Guid` for IDs, aligning with the rest of the system.
+- **New Service & Controller**: Created [PermissionService](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Service/Services/Implementations/Core/Access%20Control/PermissionService.cs#10-23) and [PermissionsController](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.API/Controllers/V1/Core/Access%20Control/PermissionsController.cs#17-20) to allow the frontend to fetch available permissions.
+- **DTO Enhancements**: 
+    - Updated [RoleDTO](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/DTOs/Core/Access%20Control/RoleDTO.cs#3-4) and [MenuDTO](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/DTOs/Core/Access%20Control/MenuDTO.cs#3-4) to include `PermissionIds`.
+    - Created [MenuRequest.cs](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/DTOs/Core/Access%20Control/MenuRequest.cs) for menu creation and updates.
+- **Service Logic**: 
+    - Overrode [CreateAsync](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Base/Services/Implementation/MSSQLBaseService.cs#29-74) and [UpdateAsync](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Base/Services/Implementation/MSSQLBaseService.cs#210-253) in [RoleService](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Service/Services/Implementations/Core/Access%20Control/RoleService.cs#13-123) and [MenuService](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Service/Services/Implementations/Core/Access%20Control/MenuService.cs#15-36) to manage the join tables ([RolePermission](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/Entities/Core/Access%20Control/RolePermission.cs#6-15) and [MenuPermission](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/Entities/Core/Access%20Control/MenuPermission.cs#6-15)) when IDs are provided from the frontend.
+    - Updated `MenuService.GetMyMenusAsync` to include `PermissionIds` in the returned tree.
+- **Mapping**: Updated [AutoMapperConfig.cs](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Service/AutoMapperConfig.cs) and [DependencyInjection.cs](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Service/DependencyInjection.cs) to support the new types and services.
+
+### Frontend
+
+- **Types**: Updated [IMenu](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/crm-client/src/types/menu.ts#1-12), [RoleDTO](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/DTOs/Core/Access%20Control/RoleDTO.cs#3-4), and request interfaces in [src/types/menu.ts](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/crm-client/src/types/menu.ts) to support `Guid` (string) permission IDs.
+- **Role Management**: Enhanced the [RolesTab](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/crm-client/src/app/admin/users/page.tsx#389-613) in `UserManagementPage.tsx` to fetch permissions and allow users to select them via a checkbox list in the Role modal.
+- **Menu Management**: Created a new [Menu Management Page](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/crm-client/src/app/admin/menus/page.tsx) that allows:
+    - Creating and editing menus and sub-menus.
+    - Assigning required permissions to menus.
+    - Organizing menu order (position).
+- **Sidebar Integration**: Added a dedicated "Administration" section to the [DynamicSidebar](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/crm-client/src/components/layout/DynamicSidebar.tsx) with links to User & Roles and Menu Management.
+
+## Verification Results
+
+### Backend API
+- `GET /api/v1/Permissions` returns the list of all permissions.
+- `GET /api/v1/Menus/my-menus` correctly includes `permissionIds` for each menu item.
+- `POST/PUT` on Roles/Menus correctly persists permission associations in the database.
+
+### Frontend UI
+- The Role Modal now shows a scrollable list of permissions.
+- The Menu Management page allows nested menu management and permission selection.
+- All IDs are handled as strings (Guids), preventing the previous numeric conversion errors.
+
+> [!IMPORTANT]
+> Ensure that the backend database is migrated if [MenuPermission](file:///c:/1%20-Tahyour/8%20-%20Projects/CRM/CRM%20-%20BE/CRM.Domain/Entities/Core/Access%20Control/MenuPermission.cs#6-15) table structure was mismatching before (the entity was fixed from `int` to `Guid`).
+
+### Next Steps
+- Verify if any secondary services rely on the old `int` IDs for permissions (unlikely given the `BaseEntity<Guid>` usage).
+- Consider adding icons preview in the Menu Management page.
