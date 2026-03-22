@@ -180,6 +180,25 @@ const notification = {
   },
 };
 
+const dashboard = {
+  getSummary: () => requests.get<any>(`/dashboardsummaries`),
+  getActivities: (params?: { page?: number; pageSize?: number; orderBy?: string; orderDirection?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append("page", params.page.toString());
+    if (params?.pageSize) query.append("pageSize", params.pageSize.toString());
+    if (params?.orderBy) query.append("orderBy", params.orderBy);
+    if (params?.orderDirection !== undefined) query.append("orderDirection", params.orderDirection);
+    return requests.get<any>(`/activities?${query.toString()}`);
+  },
+  getLowStockItems: (params?: { page?: number; pageSize?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append("page", params.page.toString());
+    if (params?.pageSize) query.append("pageSize", params.pageSize.toString());
+    query.append("lowStock", "true");
+    return requests.get<any>(`/items?${query.toString()}`);
+  }
+};
+
 const apiHandler = {
   users,
   menus,
@@ -187,6 +206,7 @@ const apiHandler = {
   // states,
   erpSettings,
   notification,
+  dashboard,
 };
 
 export default apiHandler;
