@@ -7,6 +7,8 @@ import { LowStockList } from "@/components/dashboard/LowStockList";
 import { Clock, CheckCircle, Package, TrendingUp, AlertTriangle, FileText, Laptop, Printer } from "lucide-react";
 import apiHandler from "@/data/api/ApiHandler";
 
+const USE_MOCK = process.env.NEXT_PUBLIC_DISABLE_MOCK_DATA !== "true";
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -18,7 +20,7 @@ export default function DashboardPage() {
     openIncidents: 3
   });
 
-  const [recentActivity, setRecentActivity] = useState<any[]>([
+  const [recentActivity, setRecentActivity] = useState<any[]>(USE_MOCK ? [
     {
       id: "1",
       title: "Office Supplies Request",
@@ -43,15 +45,15 @@ export default function DashboardPage() {
       createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       icon: Printer
     }
-  ]);
+  ] : []);
 
-  const [lowStockItems, setLowStockItems] = useState([
+  const [lowStockItems, setLowStockItems] = useState(USE_MOCK ? [
     { id: "1", name: "A4 Paper", minRequired: "50 reams", currentQuantity: 15 },
     { id: "2", name: "Toner Cartridge (Black)", minRequired: "10 units", currentQuantity: 3 },
     { id: "3", name: "USB Flash Drives", minRequired: "20 units", currentQuantity: 8 },
     { id: "4", name: "Notebooks", minRequired: "100 units", currentQuantity: 25 },
     { id: "5", name: "Pens (Blue)", minRequired: "200 units", currentQuantity: 30 },
-  ]);
+  ] : []);
 
   useEffect(() => {
     async function fetchData() {
@@ -84,8 +86,9 @@ export default function DashboardPage() {
             createdAt: a.timestamp || new Date().toISOString(),
             icon: FileText
           }));
-          // only set if not empty to show mock if empty
-          if (acts.length > 0) setRecentActivity(acts);
+          if (!USE_MOCK || acts.length > 0) setRecentActivity(acts);
+        } else if (!USE_MOCK) {
+          setRecentActivity([]);
         }
 
         if (lowStockRes?.isSuccess && lowStockRes.content && Array.isArray(lowStockRes.content)) {
@@ -95,7 +98,9 @@ export default function DashboardPage() {
             minRequired: i.minStockLevel || i.reorderQuantity || 10,
             currentQuantity: i.quantityOnHand || i.currentQuantity || 0
           }));
-          if (items.length > 0) setLowStockItems(items);
+          if (!USE_MOCK || items.length > 0) setLowStockItems(items);
+        } else if (!USE_MOCK) {
+          setLowStockItems([]);
         }
       } catch (error) {
         console.error("Dashboard Fetch Error", error);

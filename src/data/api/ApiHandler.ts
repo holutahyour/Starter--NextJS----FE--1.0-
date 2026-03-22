@@ -194,19 +194,31 @@ const dashboard = {
     const query = new URLSearchParams();
     if (params?.page) query.append("page", params.page.toString());
     if (params?.pageSize) query.append("pageSize", params.pageSize.toString());
-    query.append("lowStock", "true");
-    return requests.get<any>(`/items?${query.toString()}`);
+    return requests.get<any>(`/items/low-stock?${query.toString()}`);
   }
+};
+
+const requisitions = {
+  list: (params?: { status?: string; departmentId?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.append("filter", `status=${params.status}`);
+    if (params?.departmentId) query.append("filter", `departmentId=${params.departmentId}`);
+    return requests.get<any>(`/requisitions?${query.toString()}`);
+  },
+  approve: (id: string) => requests.put<any>(`/requisitions/${id}/approve`, {}),
+  reject: (id: string, reason: string) => requests.put<any>(`/requisitions/${id}/reject`, { reason }),
+  create: (data: { title: string; amount: number; description: string; departmentId: string }) =>
+    requests.post<any>("/requisitions", data),
 };
 
 const apiHandler = {
   users,
   menus,
-  // countries,
-  // states,
   erpSettings,
   notification,
   dashboard,
+  requisitions,
+  get: requests.get,
 };
 
 export default apiHandler;
