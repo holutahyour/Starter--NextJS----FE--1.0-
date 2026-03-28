@@ -217,6 +217,35 @@ const departments = {
   list: () => requests.get<any>(`/departments`),
 };
 
+const items = {
+  list: (search?: string) => {
+    const query = new URLSearchParams();
+    if (search) query.append("search", search);
+    return requests.get<any>(`/items?${query.toString()}`);
+  },
+  create: (data: {
+    name: string;
+    code: string;
+    sku: string;
+    unitType: string;
+    description?: string;
+  }) => requests.post<any>("/items", data),
+};
+
+const itemRequests = {
+  list: (params?: { status?: string; page?: number; pageSize?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.append("filter", `status=${params.status}`);
+    if (params?.page) query.append("page", params.page.toString());
+    if (params?.pageSize) query.append("pageSize", params.pageSize.toString());
+    return requests.get<any>(`/itemrequests?${query.toString()}`);
+  },
+  approve: (id: string) => requests.put<any>(`/itemrequests/${id}/approve`, {}),
+  reject: (id: string, reason: string) => requests.put<any>(`/itemrequests/${id}/reject`, { reason }),
+  create: (data: { itemName: string; itemId?: string; quantity: number; purpose: string; departmentId: string }) =>
+    requests.post<any>("/itemrequests", data),
+};
+
 const apiHandler = {
   users,
   menus,
@@ -224,8 +253,11 @@ const apiHandler = {
   notification,
   dashboard,
   requisitions,
+  itemRequests,
+  items,
   departments,
   get: requests.get,
+  put: requests.put,
 };
 
 export default apiHandler;

@@ -1,44 +1,177 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Package, Plus, Search, Filter, ChevronDown, Loader } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Package, Plus, Loader, Search } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import apiHandler from "@/data/api/ApiHandler";
+import ItemRequestCard from "./_components/ItemRequestCard";
+import CreateItemRequestDrawer from "./_components/CreateItemRequestDrawer";
+import RejectModal from "../requisitions/_components/RejectModal";
+import { ItemRequest, MOCK_ITEM_REQUESTS } from "./_components/types";
+import { useModifyQuery } from "@/hooks/use-modify-query";
+import { APP_ITEM_REQUEST_DRAWER } from "@/lib/routes";
+import { HStack } from "@chakra-ui/react";
+import {
+  PaginationItems,
+  PaginationNextTrigger,
+  PaginationPrevTrigger,
+  PaginationRoot,
+} from "@/components/ui/chakra-pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/sdcn-select";
 
-const STATUS_COLORS: Record<string, string> = {
-  Pending:   "bg-yellow-100 text-yellow-700",
-  Approved:  "bg-green-100 text-green-700",
-  Rejected:  "bg-red-100 text-red-700",
-  Fulfilled: "bg-blue-100 text-blue-700",
-  Draft:     "bg-gray-100 text-gray-600",
-};
+const USE_MOCK = process.env.NEXT_PUBLIC_DISABLE_MOCK_DATA !== "true";
+const FILTERS = [{ key: "All", value: 0 }, { key: "Pending", value: 1 }, { key: "Approved", value: 2 }, { key: "Rejected", value: 3 }];
 
 export default function ItemRequestsPage() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [requests, setRequests] = useState<ItemRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState(0);
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [rejectBusy, setRejectBusy] = useState(false);
+
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const skipFetchRef = useRef(false);
+
+  // URL that opens the drawer
+  const drawerUrl = useModifyQuery(
+    null,
+    searchParams,
+    [{ key: APP_ITEM_REQUEST_DRAWER, value: "true" }],
+    "set"
+  );
+
+  const fetchData = useCallback(async () => {
+    if (skipFetchRef.current) {
+      skipFetchRef.current = false;
+      return;
+    }
+    try {
+      if (USE_MOCK) {
+        // If the mock array has string statuses, let's map them to numbers just to match filters, or use the exact logic from requisitions
+        // MOCK_ITEM_REQUESTS uses strings "Pending", "Approved", "Rejected". 
+        // 1=Pending, 2=Approved, 3=Rejected
+        const statusMap: Record<string, number> = { "Pending": 1, "Approved": 2, "Rejected": 3 };
+        const mockFiltered =
+          activeFilter === 0
+            ? MOCK_ITEM_REQUESTS
+            : MOCK_ITEM_REQUESTS.filter((r) => r.status === activeFilter || statusMap[r.status as string] === activeFilter);
+        setRequests(mockFiltered);
+        setTotalRecords(mockFiltered.length);
+        return;
+      }
+      
+      const res = await apiHandler.itemRequests.list({
+        status: activeFilter !== 0 ? `${activeFilter}` : undefined,
+        page: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+      });
+
+      if (Array.isArray(res)) {
+        setRequests(res);
+        setTotalRecords(res.length);
+      } else if (res?.isSuccess && Array.isArray(res.content)) {
+        setRequests(res.content);
+        if (res.metaData?.total) {
+          setTotalRecords(res.metaData.total);
+        } else {
+          setTotalRecords(res.content.length);
+        }
+      } else if (res?.isSuccess && res.content && typeof res.content === "object") {
+        const items = (res.content as any).items ?? (res.content as any).data ?? [];
+        const itemsArray = Array.isArray(items) ? items : [];
+        setRequests(itemsArray);
+        if (res.metaData?.total) {
+          setTotalRecords(res.metaData.total);
+        } else {
+          setTotalRecords(itemsArray.length);
+        }
+      } else {
+        setRequests([]);
+        setTotalRecords(0);
+      }
+    } catch (e) {
+      console.error("Failed to fetch item requests", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeFilter, pagination.pageIndex, pagination.pageSize]);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await apiHandler.get<any>("/itemrequests");
-        if (res?.isSuccess && Array.isArray(res.content)) {
-          setRequests(res.content);
-        }
-      } catch (e) {
-        console.error("Failed to fetch item requests", e);
-      } finally {
-        setLoading(false);
-      }
-    }
+    setLoading(true);
     fetchData();
-  }, []);
+  }, [activeFilter, pagination.pageIndex, pagination.pageSize]); // fetch on filter/page change
+
+  const handleApprove = async (id: string) => {
+    setActionBusy(id);
+    try {
+      await apiHandler.itemRequests.approve(id);
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: 2 } : r))
+      );
+    } catch (e) {
+      console.error("Approve failed", e);
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handleRejectConfirm = async (reason: string) => {
+    if (!rejectTarget) return;
+    setRejectBusy(true);
+    try {
+      await apiHandler.itemRequests.reject(rejectTarget, reason);
+      setRequests((prev) =>
+        prev.map((r) => (r.id === rejectTarget ? { ...r, status: 3, reason } : r))
+      );
+      setRejectTarget(null);
+    } catch (e) {
+      console.error("Reject failed", e);
+    } finally {
+      setRejectBusy(false);
+    }
+  };
 
   const filtered = requests.filter((r) =>
-    (r.title || r.itemName || r.name || "").toLowerCase().includes(search.toLowerCase())
+    (r.itemName || r.title || r.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="p-6 space-y-6">
+      {/* Reject Modal */}
+      {rejectTarget && (
+        <RejectModal
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectTarget(null)}
+          busy={rejectBusy}
+        />
+      )}
+
+      {/* Create Drawer */}
+      <CreateItemRequestDrawer
+        onCreated={(req) => {
+          skipFetchRef.current = true;
+          const newReq = { ...req, status: 1 as const };
+          setRequests((prev) => [newReq, ...prev]);
+          setTotalRecords((prev) => prev + 1);
+        }}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -47,74 +180,112 @@ export default function ItemRequestsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Item Requests</h1>
-            <p className="text-sm text-gray-500">Track requests for specific inventory items</p>
+            <p className="text-sm text-gray-500">Manage item requests to inventory officer</p>
           </div>
         </div>
-        <button className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+        <button
+          onClick={() => router.push(drawerUrl)}
+          className="flex items-center gap-2 bg-[#7cc843] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#68a638] transition-colors shadow-sm"
+        >
           <Plus className="w-4 h-4" />
           New Request
         </button>
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
+      {/* Filter Tabs + Search */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter(f.value)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                activeFilter === f.value
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {f.key}
+            </button>
+          ))}
+        </div>
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search item requests..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
-        <button className="flex items-center gap-2 border border-gray-200 px-4 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-          <Filter className="w-4 h-4" />
-          Filter
-          <ChevronDown className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* List */}
+      <div>
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader className="w-6 h-6 text-blue-500 animate-spin" />
+          <div className="flex items-center justify-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm">
+            <Loader className="w-6 h-6 text-green-500 animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm text-gray-400">
             <Package className="w-10 h-10 mb-3 opacity-30" />
             <p className="text-sm">No item requests found</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-left px-6 py-3 font-medium text-gray-500">Item</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-500">Quantity</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-500">Requested By</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-500">Date</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-500">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                  <td className="px-6 py-4 font-medium text-gray-900">{r.itemName || r.title || r.name || "—"}</td>
-                  <td className="px-6 py-4 text-gray-700">{r.quantity ?? "—"}</td>
-                  <td className="px-6 py-4 text-gray-500">{r.requestedBy || r.createdByName || "—"}</td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[r.status] || "bg-gray-100 text-gray-600"}`}>
-                      {r.status || "Pending"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-4">
+            {filtered.map((r) => (
+              <ItemRequestCard
+                key={r.id}
+                req={r}
+                onApprove={handleApprove}
+                onReject={(id) => setRejectTarget(id)}
+                actionBusy={actionBusy}
+              />
+            ))}
+
+            {totalRecords > 0 && (
+              <div className="pt-4 flex items-center justify-between w-full">
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm font-medium text-nowrap text-gray-500">Rows per page</p>
+                  <Select
+                    value={`${pagination.pageSize}`}
+                    onValueChange={(value) => {
+                      setPagination({ pageIndex: 0, pageSize: Number(value) });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[70px] bg-white">
+                      <SelectValue placeholder={pagination.pageSize} />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      {[10, 20, 50, 100].map((pageSize) => (
+                        <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs">
+                          {pageSize}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {totalRecords > pagination.pageSize && (
+                  <PaginationRoot
+                    page={pagination.pageIndex + 1}
+                    count={totalRecords}
+                    pageSize={pagination.pageSize}
+                    onPageChange={(e) =>
+                      setPagination((prev) => ({ ...prev, pageIndex: e.page - 1 }))
+                    }
+                  >
+                    <HStack>
+                      <PaginationPrevTrigger />
+                      <PaginationItems />
+                      <PaginationNextTrigger />
+                    </HStack>
+                  </PaginationRoot>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
