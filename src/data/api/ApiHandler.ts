@@ -199,16 +199,22 @@ const dashboard = {
 };
 
 const requisitions = {
-  list: (params?: { status?: string; departmentId?: string }) => {
+  list: (params?: { status?: string; departmentId?: string; page?: number; pageSize?: number }) => {
     const query = new URLSearchParams();
     if (params?.status) query.append("filter", `status=${params.status}`);
     if (params?.departmentId) query.append("filter", `departmentId=${params.departmentId}`);
+    if (params?.page) query.append("page", params.page.toString());
+    if (params?.pageSize) query.append("pageSize", params.pageSize.toString());
     return requests.get<any>(`/requisitions?${query.toString()}`);
   },
   approve: (id: string) => requests.put<any>(`/requisitions/${id}/approve`, {}),
   reject: (id: string, reason: string) => requests.put<any>(`/requisitions/${id}/reject`, { reason }),
   create: (data: { title: string; amount: number; description: string; departmentId: string }) =>
     requests.post<any>("/requisitions", data),
+};
+
+const departments = {
+  list: () => requests.get<any>(`/departments`),
 };
 
 const apiHandler = {
@@ -218,6 +224,7 @@ const apiHandler = {
   notification,
   dashboard,
   requisitions,
+  departments,
   get: requests.get,
 };
 

@@ -30,6 +30,7 @@ interface IAppDrawer extends DrawerBodyProps {
   setOpen?: (value: boolean) => void
   redirectUri?: string
   hasFooter?: boolean
+  submitLabel?: string
   cancelQueryKey: string // still used for drawer visibility (e.g. APP_MISC_FEES_DIALOG)
   onDiscardChange?: () => void
 }
@@ -48,6 +49,7 @@ function AppDrawer({
   open,
   redirectUri,
   hasFooter,
+  submitLabel = 'Save Changes',
   cancelQueryKey, // key to control drawer visibility (e.g. APP_MISC_FEES_DIALOG)
   onDiscardChange,
   ...rest
@@ -119,7 +121,7 @@ function AppDrawer({
                   })
               }}
             >
-              Save Changes
+              {submitLabel}
             </Button>
           </DrawerFooter>
         )}
