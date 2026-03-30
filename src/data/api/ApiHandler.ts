@@ -217,6 +217,33 @@ const departments = {
   list: () => requests.get<any>(`/departments`),
 };
 
+const categories = {
+  list: () => requests.get<any>(`/categories`),
+  create: (data: { name: string; description?: string }) => {
+    const code = data.name.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 10);
+    return requests.post<any>(`/categories`, { ...data, code });
+  },
+};
+
+let localVendors = [
+  { id: "1", name: "Mock Vendor A" },
+  { id: "2", name: "Mock Vendor B" },
+];
+
+const vendors = {
+  list: async () => ({ isSuccess: true, content: localVendors }),
+  create: async (data: { name: string; email?: string; phoneNumber?: string }) => {
+    const newVendor = { id: Math.random().toString(), name: data.name };
+    localVendors.push(newVendor);
+    return { isSuccess: true, content: newVendor };
+  },
+};
+
+const locations = {
+  list: () => requests.get<any>(`/locations`),
+  create: (data: { name: string; description?: string }) => requests.post<any>(`/locations`, data),
+};
+
 const items = {
   list: (search?: string) => {
     const query = new URLSearchParams();
@@ -256,6 +283,9 @@ const apiHandler = {
   itemRequests,
   items,
   departments,
+  categories,
+  vendors,
+  locations,
   get: requests.get,
   put: requests.put,
 };
