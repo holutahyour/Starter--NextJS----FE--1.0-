@@ -10,7 +10,7 @@ import DynamicSelect from "./DynamicSelect";
 import { useQuery } from "@/hooks/use-query";
 import { useModifyQuery } from "@/hooks/use-modify-query";
 import { VStack } from "@chakra-ui/react";
-import { InventoryItem } from "./types";
+import { InventoryItem, mapApiToFrontendItem } from "./types";
 
 const APP_INVENTORY_DRAWER = "inv_drawer";
 
@@ -48,6 +48,8 @@ export default function AddItemDrawer({ onCreated }: AddItemDrawerProps) {
       initialStock: 0,
       minStockLevel: 10,
       location: "",
+      locationId: "",
+      itemLocation: "",
       batchTracked: false,
       expiryTracked: false,
     },
@@ -55,18 +57,49 @@ export default function AddItemDrawer({ onCreated }: AddItemDrawerProps) {
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      const newItem: InventoryItem = {
-        id: Math.random().toString(36).substr(2, 9),
+      const payload = {
         name: values.name,
-        category: values.categoryId || "Uncategorized",
-        currentStock: values.initialStock || 0,
-        minStock: values.minStockLevel || 0,
-        unit: values.unitType,
-        status: (values.initialStock || 0) <= (values.minStockLevel || 0) ? "Low Stock" : "Adequate",
-        location: values.location || "",
-        lastUpdatedDate: new Date().toISOString().split("T")[0],
-        lastUpdatedBy: "Current User",
+        code: values.sku,
+        sku: values.sku,
+        unitType: values.unitType,
+        categoryId: values.categoryId,
+        vendorId: values.vendorId,
+        description: values.description,
+        locationId: values.locationId,
+        itemLocation: values.itemLocation,
+        costPrice: values.costPrice,
+        sellingPrice: values.sellingPrice,
+        barcode: values.barcode,
+        storageConditions: values.storageConditions,
+        minStockLevel: values.minStockLevel,
+        quantityOnHand: values.initialStock,
+        batchTracked: values.batchTracked,
+        expiryTracked: values.expiryTracked,
       };
+
+      const res = await apiHandler.items.create(payload);
+
+      const createdData = res?.content?.data || res?.content || res;
+      let newItem: InventoryItem;
+      if (createdData && createdData.id) {
+        newItem = mapApiToFrontendItem(createdData);
+      } else {
+        newItem = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: values.name,
+          category: values.categoryId || "Uncategorized",
+          currentStock: values.initialStock || 0,
+          minStock: values.minStockLevel || 0,
+          unit: values.unitType,
+          status: (values.initialStock || 0) <= (values.minStockLevel || 0) ? "Low Stock" : "Adequate",
+          location: values.location || "",
+          locationId: values.locationId || "",
+          locationName: values.location || "",
+          itemLocation: values.itemLocation || "",
+          lastUpdatedDate: new Date().toISOString().split("T")[0],
+          lastUpdatedBy: "Current User",
+        };
+      }
 
       onCreated(newItem);
       reset();
@@ -227,16 +260,31 @@ export default function AddItemDrawer({ onCreated }: AddItemDrawerProps) {
           </label>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-          <DynamicSelect
-            apiConfig={apiHandler.locations}
-            // For location we match by name since it's stored as a string
-            value={watch("location") || ""}
-            onChange={(id, name) => setValue("location", name, { shouldValidate: true })}
-            placeholder="Select Location"
-            createLabel="Create location"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location <span className="text-red-500">*</span></label>
+            <DynamicSelect
+              apiConfig={apiHandler.locations}
+              value={watch("locationId") || ""}
+              onChange={(id, name) => {
+                setValue("locationId", id, { shouldValidate: true });
+                setValue("location", name, { shouldValidate: true }); // Syncing the readable string too
+              }}
+              placeholder="Select Location"
+              createLabel="Create location"
+            />
+          </div>
+
+          {watch("locationId") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Specific Spot</label>
+              <input
+                {...register("itemLocation")}
+                placeholder="e.g. Aisle 4, Shelf 2"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition-colors"
+              />
+            </div>
+          )}
         </div>
 
         <div>

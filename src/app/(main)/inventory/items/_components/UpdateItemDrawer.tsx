@@ -11,7 +11,7 @@ import DynamicSelect from "./DynamicSelect";
 import { useQuery } from "@/hooks/use-query";
 import { useModifyQuery } from "@/hooks/use-modify-query";
 import { VStack } from "@chakra-ui/react";
-import { InventoryItem } from "./types";
+import { InventoryItem, mapApiToFrontendItem } from "./types";
 
 const APP_UPDATE_INVENTORY_DRAWER = "inv_update_drawer";
 
@@ -50,6 +50,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
       initialStock: 0,
       minStockLevel: 10,
       location: "",
+      locationId: "",
+      itemLocation: "",
       batchTracked: false,
       expiryTracked: false,
     },
@@ -60,12 +62,13 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
       reset({
         name: item.name,
         sku: "SKU-" + item.id, // Fallback for mock if missing
-        categoryId: item.category === "Office Supplies" ? "Office Supplies" : item.category === "IT Equipment" ? "IT Equipment" : "Printer Supplies", 
-        vendorId: "",
+        categoryId: item.categoryId || "",
+        vendorId: item.vendorId || "",
         unitType: item.unit,
         initialStock: item.currentStock,
         minStockLevel: item.minStock,
-        location: item.location,
+        locationId: item.locationId || "",
+        itemLocation: item.itemLocation || "",
         batchTracked: false,
         expiryTracked: false,
         description: "",
@@ -79,18 +82,49 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
     if (!item) return;
 
     try {
-      const updatedItem: InventoryItem = {
-        ...item,
+      const payload = {
         name: values.name,
-        category: values.categoryId || "Uncategorized",
-        currentStock: values.initialStock || 0,
-        minStock: values.minStockLevel || 0,
-        unit: values.unitType,
-        status: (values.initialStock || 0) <= (values.minStockLevel || 0) ? "Low Stock" : "Adequate",
-        location: values.location || "",
-        lastUpdatedDate: new Date().toISOString().split("T")[0],
-        lastUpdatedBy: "Current User",
+        code: values.sku,
+        sku: values.sku,
+        unitType: values.unitType,
+        categoryId: values.categoryId,
+        vendorId: values.vendorId,
+        description: values.description,
+        locationId: values.locationId,
+        itemLocation: values.itemLocation,
+        costPrice: values.costPrice,
+        sellingPrice: values.sellingPrice,
+        barcode: values.barcode,
+        storageConditions: values.storageConditions,
+        minStockLevel: values.minStockLevel,
+        quantityOnHand: values.initialStock,
+        batchTracked: values.batchTracked,
+        expiryTracked: values.expiryTracked,
       };
+
+      const res = await apiHandler.items.update(item.id, payload);
+
+      const updatedData = res?.content?.data || res?.content || res;
+      let updatedItem: InventoryItem;
+      if (updatedData && updatedData.id) {
+        updatedItem = mapApiToFrontendItem(updatedData);
+      } else {
+        updatedItem = {
+          ...item,
+          name: values.name,
+          category: values.categoryId || "Uncategorized",
+          currentStock: values.initialStock || 0,
+          minStock: values.minStockLevel || 0,
+          unit: values.unitType,
+          status: (values.initialStock || 0) <= (values.minStockLevel || 0) ? "Low Stock" : "Adequate",
+          location: values.location || "",
+          locationId: values.locationId || "",
+          locationName: values.location || "",
+          itemLocation: values.itemLocation || "",
+          lastUpdatedDate: new Date().toISOString().split("T")[0],
+          lastUpdatedBy: "Current User",
+        };
+      }
       
       onUpdated(updatedItem);
       reset();
@@ -156,6 +190,7 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
               onChange={(id, name) => setValue("categoryId", id, { shouldValidate: true })}
               placeholder="Select Category"
               createLabel="Create category"
+              defaultDisplayValue={item?.categoryName || item?.category}
             />
           </div>
 
@@ -167,6 +202,7 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
               onChange={(id, name) => setValue("vendorId", id, { shouldValidate: true })}
               placeholder="Select Vendor"
               createLabel="Create vendor"
+              defaultDisplayValue={item?.vendorName}
             />
           </div>
         </div>
@@ -256,16 +292,32 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
           </label>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-          <DynamicSelect
-            apiConfig={apiHandler.locations}
-            // For location we match by name since it's stored as a string
-            value={watch("location") || ""}
-            onChange={(id, name) => setValue("location", name, { shouldValidate: true })}
-            placeholder="Select Location"
-            createLabel="Create location"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <DynamicSelect
+              apiConfig={apiHandler.locations}
+              value={watch("locationId") || ""}
+              onChange={(id, name) => {
+                setValue("locationId", id, { shouldValidate: true });
+                setValue("location", name, { shouldValidate: true }); // Syncing the readable string too
+              }}
+              placeholder="Select Location"
+              createLabel="Create location"
+              defaultDisplayValue={item?.locationName || item?.location}
+            />
+          </div>
+
+          {watch("locationId") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Specific Spot</label>
+              <input
+                {...register("itemLocation")}
+                placeholder="e.g. Aisle 4, Shelf 2"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+              />
+            </div>
+          )}
         </div>
 
         <div>

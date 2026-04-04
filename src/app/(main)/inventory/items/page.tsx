@@ -5,7 +5,7 @@ import { Plus, Search, Loader, Archive } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import apiHandler from "@/data/api/ApiHandler";
 import { useModifyQuery } from "@/hooks/use-modify-query";
-import { InventoryItem, MOCK_INVENTORY_ITEMS } from "./_components/types";
+import { InventoryItem, MOCK_INVENTORY_ITEMS, mapApiToFrontendItem } from "./_components/types";
 import LowStockAlerts from "./_components/LowStockAlerts";
 import InventoryTable from "./_components/InventoryTable";
 import AddItemDrawer from "./_components/AddItemDrawer";
@@ -40,9 +40,9 @@ export default function InventoryPage() {
       const res = await apiHandler.items.list(search || undefined);
       
       if (Array.isArray(res)) {
-        setItems(res);
+        setItems(res.map(mapApiToFrontendItem));
       } else if (res?.isSuccess && Array.isArray(res.content)) {
-        setItems(res.content);
+        setItems(res.content.map(mapApiToFrontendItem));
       } else {
         setItems([]);
       }
@@ -66,7 +66,7 @@ export default function InventoryPage() {
 
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
-    item.category.toLowerCase().includes(search.toLowerCase())
+    (item.categoryName || item.category || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (

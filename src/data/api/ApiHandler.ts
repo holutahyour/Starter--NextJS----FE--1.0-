@@ -225,18 +225,10 @@ const categories = {
   },
 };
 
-let localVendors = [
-  { id: "1", name: "Mock Vendor A" },
-  { id: "2", name: "Mock Vendor B" },
-];
-
 const vendors = {
-  list: async () => ({ isSuccess: true, content: localVendors }),
-  create: async (data: { name: string; email?: string; phoneNumber?: string }) => {
-    const newVendor = { id: Math.random().toString(), name: data.name };
-    localVendors.push(newVendor);
-    return { isSuccess: true, content: newVendor };
-  },
+  list: () => requests.get<any>(`/vendors`),
+  create: (data: { name: string; email?: string; phoneNumber?: string }) => 
+    requests.post<any>(`/vendors`, data),
 };
 
 const locations = {
@@ -256,7 +248,10 @@ const items = {
     sku: string;
     unitType: string;
     description?: string;
+    locationId?: string;
+    itemLocation?: string;
   }) => requests.post<any>("/items", data),
+  update: (id: string, data: any) => requests.put<any>(`/items?id=${id}`, data),
 };
 
 const itemRequests = {

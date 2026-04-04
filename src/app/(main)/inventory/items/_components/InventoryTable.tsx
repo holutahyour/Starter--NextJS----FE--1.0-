@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/sdcn-table";
 import { InventoryItem } from "./types";
-import { Package, Edit2 } from "lucide-react";
+import { Package, Edit2, MapPin } from "lucide-react";
 
 interface InventoryTableProps {
   items: InventoryItem[];
@@ -42,7 +42,7 @@ export default function InventoryTable({ items, onUpdate }: InventoryTableProps)
                   <span className="font-medium text-gray-900">{item.name}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-gray-600">{item.category}</TableCell>
+              <TableCell className="text-gray-600">{item.categoryName || item.category || "Unknown"}</TableCell>
               <TableCell>
                 <span className={item.status === "Low Stock" ? "text-red-600 font-bold" : "text-gray-900 font-semibold"}>
                   {item.currentStock} {item.unit}
@@ -62,7 +62,17 @@ export default function InventoryTable({ items, onUpdate }: InventoryTableProps)
                   {item.status}
                 </span>
               </TableCell>
-              <TableCell className="text-gray-600 font-medium">{item.location}</TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-900">{item.locationName || item.location || "N/A"}</span>
+                  {item.itemLocation && (
+                    <div className="flex items-center text-xs text-gray-500 mt-0.5">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      <span>{item.itemLocation}</span>
+                    </div>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-900">{item.lastUpdatedDate}</span>

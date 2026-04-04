@@ -17,6 +17,7 @@ import { APP_DEFAULT_PAGE } from '@/lib/routes'
 import { Button, DrawerBodyProps } from '@chakra-ui/react'
 import { useParams, usePathname } from 'next/navigation'
 import AppDialog from './app-dialog'
+import { useState } from 'react'
 
 interface IAppDrawer extends DrawerBodyProps {
   trigger?: React.ReactNode
@@ -73,6 +74,8 @@ function AppDrawer({
     router.push(pathName.split('?')[0])
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   return (
     <DrawerRoot open={open} onOpenChange={handleClose} key={size} size={size} placement={placement}>
       <DrawerBackdrop />
@@ -93,7 +96,7 @@ function AppDrawer({
 
         {hasFooter && (
           <DrawerFooter>
-            <Button onClick={() => router.push(cancelDialogUrl)} variant="outline">
+            <Button onClick={() => router.push(cancelDialogUrl)} variant="outline" disabled={isSubmitting}>
               Cancel
             </Button>
 
@@ -114,11 +117,18 @@ function AppDrawer({
               type="submit"
               bg="fg.success"
               color="fg.inverted"
+              loading={isSubmitting}
               onClick={(e) => {
-                if (onSubmit)
-                  onSubmit(e).then(() => {
-                    if (onDiscardChange) onDiscardChange()
-                  })
+                if (onSubmit) {
+                  setIsSubmitting(true)
+                  onSubmit(e)
+                    .then(() => {
+                      if (onDiscardChange) onDiscardChange()
+                    })
+                    .finally(() => {
+                      setIsSubmitting(false)
+                    })
+                }
               }}
             >
               {submitLabel}

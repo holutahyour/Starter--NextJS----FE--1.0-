@@ -2,11 +2,20 @@ export interface InventoryItem {
   id: string;
   name: string;
   category: string;
+  categoryId?: string;
+  categoryName?: string;
+  vendorId?: string;
+  vendorName?: string;
   currentStock: number;
   minStock: number;
   unit: string;
   status: "Low Stock" | "Adequate";
   location: string;
+  locationId?: string;
+  locationName?: string;
+  itemLocation?: string;
+  costPrice?: number;
+  sellingPrice?: number;
   lastUpdatedDate: string;
   lastUpdatedBy: string;
 }
@@ -21,6 +30,8 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "reams",
     status: "Low Stock",
     location: "Storage Room A",
+    locationName: "Storage Room A",
+    itemLocation: "Aisle 2, Rack 4",
     lastUpdatedDate: "2026-02-03",
     lastUpdatedBy: "Mike Inventory",
   },
@@ -33,6 +44,8 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     unit: "units",
     status: "Low Stock",
     location: "Storage Room B",
+    locationName: "Storage Room B",
+    itemLocation: "Cabinet 3, Shelf Top",
     lastUpdatedDate: "2026-02-04",
     lastUpdatedBy: "Mike Inventory",
   },
@@ -85,3 +98,25 @@ export const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
     lastUpdatedBy: "Mike Inventory",
   },
 ];
+
+export const mapApiToFrontendItem = (i: any): InventoryItem => ({
+  id: i.id,
+  name: i.name || "Unknown",
+  category: i.categoryName || "Unknown",
+  categoryId: i.categoryId,
+  categoryName: i.categoryName,
+  vendorId: i.vendorId,
+  vendorName: i.vendorName,
+  currentStock: i.quantityOnHand ?? i.initialStock ?? 0,
+  minStock: i.minStockLevel || 0,
+  unit: i.unitType || "piece",
+  status: (((i.quantityOnHand ?? i.initialStock ?? 0) <= (i.minStockLevel || 0)) ? "Low Stock" : "Adequate"),
+  location: i.locationName || i.locationId || "N/A",
+  locationId: i.locationId,
+  locationName: i.locationName,
+  itemLocation: i.itemLocation,
+  costPrice: i.costPrice,
+  sellingPrice: i.sellingPrice,
+  lastUpdatedDate: i.lastModifiedOn ? new Date(i.lastModifiedOn).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+  lastUpdatedBy: i.lastModifiedBy || "System",
+});

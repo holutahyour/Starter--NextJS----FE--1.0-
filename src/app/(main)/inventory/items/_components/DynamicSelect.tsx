@@ -18,6 +18,7 @@ interface DynamicSelectProps {
   placeholder?: string;
   createLabel?: string;
   error?: string;
+  defaultDisplayValue?: string;
 }
 
 export default function DynamicSelect({
@@ -27,6 +28,7 @@ export default function DynamicSelect({
   placeholder = "Select or search...",
   createLabel = "Create new",
   error,
+  defaultDisplayValue,
 }: DynamicSelectProps) {
   const [items, setItems] = useState<DatabaseItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,7 +105,7 @@ export default function DynamicSelect({
   };
 
   const selectedItem = items.find((i) => i.id === value);
-  const displayValue = open ? search : selectedItem?.name ?? "";
+  const displayValue = open ? search : selectedItem?.name ?? (value && defaultDisplayValue ? defaultDisplayValue : "");
 
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
