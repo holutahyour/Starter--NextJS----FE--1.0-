@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader } from "lucide-react";
 
 interface DatabaseItem {
@@ -43,7 +43,7 @@ export default function DynamicSelect({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch items
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiConfig.list();
@@ -62,13 +62,14 @@ export default function DynamicSelect({
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiConfig]);
 
+  // Fetch on open (lazy) OR immediately on mount when a value is already selected
   useEffect(() => {
-    if (open && items.length === 0) {
+    if (items.length === 0 && (open || value)) {
       fetchItems();
     }
-  }, [open]);
+  }, [open, value, items.length, fetchItems]);
 
   // Click outside listener
   useEffect(() => {

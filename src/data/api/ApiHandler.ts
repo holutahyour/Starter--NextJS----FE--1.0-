@@ -227,7 +227,7 @@ const categories = {
 
 const vendors = {
   list: () => requests.get<any>(`/vendors`),
-  create: (data: { name: string; email?: string; phoneNumber?: string }) => 
+  create: (data: { name: string; email?: string; phoneNumber?: string }) =>
     requests.post<any>(`/vendors`, data),
 };
 
@@ -237,10 +237,15 @@ const locations = {
 };
 
 const items = {
-  list: (search?: string) => {
+  list: (search?: string, page?: number, pageSize?: number) => {
     const query = new URLSearchParams();
     if (search) query.append("search", search);
+    if (page) query.append("page", page.toString());
+    if (pageSize) query.append("pageSize", pageSize.toString());
     return requests.get<any>(`/items?${query.toString()}`);
+  },
+  getById: (id?: string) => {
+    return requests.get<any>(`/items/${id}`);
   },
   create: (data: {
     name: string;

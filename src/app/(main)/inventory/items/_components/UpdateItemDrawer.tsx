@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { createItemSchema, CreateItemValues } from "@/data/schema/item";
 import apiHandler from "@/data/api/ApiHandler";
 import AppDrawer from "@/components/app/app-drawer";
@@ -27,6 +27,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
   const redirectUri = useModifyQuery(null, searchParams, [
     { key: APP_UPDATE_INVENTORY_DRAWER, value: "true" },
   ]);
+
+
 
   const discardChange = () => {
     router.push(pathName.split("?")[0]);
@@ -57,29 +59,53 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
     },
   });
 
+  const searchParamsHook = useSearchParams();
+  const itemId = searchParamsHook.get("id");
+
   useEffect(() => {
-    if (item && open) {
-      reset({
-        name: item.name,
-        sku: "SKU-" + item.id, // Fallback for mock if missing
-        categoryId: item.categoryId || "",
-        vendorId: item.vendorId || "",
-        unitType: item.unit,
-        initialStock: item.currentStock,
-        minStockLevel: item.minStock,
-        locationId: item.locationId || "",
-        itemLocation: item.itemLocation || "",
-        batchTracked: false,
-        expiryTracked: false,
-        description: "",
-        barcode: "",
-        storageConditions: "",
-      });
+    if (!open || !itemId) return;
+
+    const fetchItem = async () => {
+      try {
+        const res = await apiHandler.items.getById(itemId);
+        const data = res?.content?.data || res?.content || res;
+        if (!data) return;
+
+        reset({
+          name: data.name || "",
+          sku: data.sku || data.code || "",
+          categoryId: data.categoryId || "",
+          vendorId: data.vendorId || "",
+          unitType: data.unitType || data.unit || "piece",
+          initialStock: data.quantityOnHand ?? data.currentStock ?? 0,
+          minStockLevel: data.minStockLevel ?? data.minStock ?? 0,
+          locationId: data.locationId || "",
+          itemLocation: data.itemLocation || "",
+          batchTracked: data.batchTracked ?? false,
+          expiryTracked: data.expiryTracked ?? false,
+          description: data.description || "",
+          barcode: data.barcode || "",
+          storageConditions: data.storageConditions || "",
+          costPrice: data.costPrice ?? undefined,
+          sellingPrice: data.sellingPrice ?? undefined,
+        });
+      } catch (e) {
+        console.error("Failed to fetch item for update", e);
+      }
+    };
+
+    fetchItem();
+  }, [itemId, open, reset]);
+
+  // Clear the form when the drawer is closed
+  useEffect(() => {
+    if (!open) {
+      reset();
     }
-  }, [item, open, reset]);
+  }, [open, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!item) return;
+    if (!itemId) return;
 
     try {
       const payload = {
@@ -102,7 +128,7 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
         expiryTracked: values.expiryTracked,
       };
 
-      const res = await apiHandler.items.update(item.id, payload);
+      const res = await apiHandler.items.update(itemId, payload);
 
       const updatedData = res?.content?.data || res?.content || res;
       let updatedItem: InventoryItem;
@@ -110,7 +136,7 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
         updatedItem = mapApiToFrontendItem(updatedData);
       } else {
         updatedItem = {
-          ...item,
+          id: itemId,
           name: values.name,
           category: values.categoryId || "Uncategorized",
           currentStock: values.initialStock || 0,
@@ -123,9 +149,11 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
           itemLocation: values.itemLocation || "",
           lastUpdatedDate: new Date().toISOString().split("T")[0],
           lastUpdatedBy: "Current User",
-        };
+          vendorId: values.vendorId || "",
+          categoryId: values.categoryId || "",
+        } as InventoryItem;
       }
-      
+
       onUpdated(updatedItem);
       reset();
       discardChange();
@@ -159,9 +187,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
             <input
               {...register("name")}
               placeholder="e.g. A4 Paper"
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                errors.name ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
-              }`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${errors.name ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
+                }`}
             />
             {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
           </div>
@@ -173,9 +200,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
             <input
               {...register("sku")}
               placeholder="e.g. SKU-12345"
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                errors.sku ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
-              }`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${errors.sku ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
+                }`}
             />
             {errors.sku && <p className="text-xs text-red-500 mt-1">{errors.sku.message}</p>}
           </div>
@@ -215,9 +241,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
             <input
               {...register("unitType")}
               placeholder="e.g. piece, box, ream"
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                errors.unitType ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
-              }`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${errors.unitType ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
+                }`}
             />
             {errors.unitType && <p className="text-xs text-red-500 mt-1">{errors.unitType.message}</p>}
           </div>
@@ -238,9 +263,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
               {...register("initialStock", { valueAsNumber: true })}
               type="number"
               min="0"
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                errors.initialStock ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
-              }`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${errors.initialStock ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
+                }`}
             />
             {errors.initialStock && <p className="text-xs text-red-500 mt-1">{errors.initialStock.message}</p>}
           </div>
@@ -250,9 +274,8 @@ export default function UpdateItemDrawer({ item, onUpdated }: UpdateItemDrawerPr
               {...register("minStockLevel", { valueAsNumber: true })}
               type="number"
               min="0"
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-                errors.minStockLevel ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
-              }`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${errors.minStockLevel ? "border-red-400 focus:ring-red-300" : "border-gray-200 focus:ring-blue-400 focus:border-blue-400"
+                }`}
             />
           </div>
         </div>

@@ -1,6 +1,7 @@
 export interface ItemRequest {
   id: string;
   itemName?: string;
+  itemId?: string;
   title?: string;
   name?: string;
   quantity?: number;

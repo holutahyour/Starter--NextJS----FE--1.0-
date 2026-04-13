@@ -115,7 +115,7 @@ export default function ItemRequestsPage() {
   useEffect(() => {
     setLoading(true);
     fetchData();
-  }, [activeFilter, pagination.pageIndex, pagination.pageSize]); // fetch on filter/page change
+  }, [activeFilter, pagination.pageIndex, pagination.pageSize, fetchData]); // fetch on filter/page change
 
   const handleApprove = async (id: string) => {
     setActionBusy(id);
