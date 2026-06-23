@@ -143,8 +143,9 @@ Unified tabbed area (mirrors `configurations` layout): tabs **Users**, **Roles &
 - No drag-and-drop menu ordering in v1 (position via number field).
 - Audit export limited to CSV with a row cap; no scheduled/async export in v1.
 
-## 9. Open items for spec review
+## 9. Resolved decisions
 
-- Confirm `SUPER_ADMIN` role-code as the super-admin signal (vs. keying off the SYSTEM tenant).
-- Confirm CSV (vs. Excel) for audit export and the row cap value.
-- Confirm Users tab stays as-is (no redesign in this effort).
+- **Super-admin signal:** seeded `SUPER_ADMIN` role code (`Role.IsSystem = true`). Chosen over
+  SYSTEM-tenant sniffing — explicit, testable, and consistent with the existing RBAC model.
+- **Audit export:** CSV (`text/csv`), capped at 50,000 rows per export.
+- **Users tab:** existing `admin/users` page reused as-is; no redesign in this effort.
