@@ -13,6 +13,7 @@ export const APP_DEFAULT_PAGE = () => '/dashboard';
 export const CONFIG = `/configurations`;
 export const PARAMETERS = `parameters`
 export const NOTIFICATIONS = `/notifications`;
+export const ADMIN = `/admin`;
 
 
 // export const BILLING_REPORT = "/reports/billing-report";
@@ -39,4 +40,7 @@ export const APP_ADD_USER_DRAWER = 'add_user_drawer'
 export const APP_UPDATE_USER_DRAWER = 'update_user_drawer'
 export const APP_ADD_DEPARTMENT_DRAWER = 'add_dept_drawer'
 export const APP_EDIT_DEPARTMENT_DRAWER = 'edit_dept_drawer'
-export const APP_WORKFLOW_DRAWER = 'workflow_drawer'
+export const APP_WORKFLOW_DRAWER = 'workflow_drawer'
+export const APP_ROLE_DRAWER = 'role_drawer'
+export const APP_MENU_DRAWER = 'menu_drawer'
+export const APP_AUDIT_DETAIL_DRAWER = 'audit_detail_drawer'

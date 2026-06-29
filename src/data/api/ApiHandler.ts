@@ -6,6 +6,10 @@ import { IApiResponse } from "../interface/IApiResponse";
 import { IMenu } from "../sidebar-data";
 import { getSession } from "next-auth/react";
 import { IWorkflowTemplate, IWorkflowStepRequest, IApprovalHistory } from "../interface/IWorkflow";
+import {
+  IRole, ICreateRoleRequest, IUpdateRoleRequest, IPermission,
+  IModule, ITenantModule, IToggleModuleRequest, IAuditLog, IAuditLogFilter,
+} from "../interface/IAdmin";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -163,16 +167,59 @@ const erpSettings = {
 
 const menus = {
   list: () => requests.get<IApiResponse<IMenu[]>>(`/menus`),
-  create: (data: IMenu) =>
-    requests.post<IMenu>("/menus", data),
+  create: (data: any) =>
+    requests.post<any>("/menus", data),
+  update: (id: string, data: any) => requests.put<any>(`/menus?id=${id}`, data),
+  remove: (id: string) => requests.delete<any>(`/menus?id=${id}`),
   my_menus: () =>
     requests.get<IApiResponse<IMenu[]>>(`/menus/my-menus`),
 };
 
 const roles = {
-  list: () => requests.get<any>(`/roles`),
+  list: () => requests.get<IApiResponse<IRole[]>>(`/roles`),
+  get_by_id: (id: string) => requests.get<IApiResponse<IRole>>(`/roles/${id}`),
+  create: (data: ICreateRoleRequest) => requests.post<any>(`/roles`, data),
+  update: (id: string, data: IUpdateRoleRequest) => requests.put<any>(`/roles?id=${id}`, data),
+  remove: (id: string) => requests.delete<any>(`/roles?id=${id}`),
   /** Lightweight: only id + name, accessible to all authenticated users. Used for dropdowns. */
   listNames: () => requests.get<{ isSuccess: boolean; content: { id: string; name: string }[] }>(`/roles/names`),
+};
+
+const permissions = {
+  list: () => requests.get<IApiResponse<IPermission[]>>(`/permissions?pageSize=500`),
+};
+
+const modules = {
+  catalog: () => requests.get<IApiResponse<IModule[]>>(`/modules`),
+  tenant: () => requests.get<IApiResponse<ITenantModule[]>>(`/modules/tenant`),
+  toggle: (data: IToggleModuleRequest) => requests.post<any>(`/modules/toggle`, data),
+  create: (data: any) => requests.post<any>(`/modules`, data),
+  update: (id: string, data: any) => requests.put<any>(`/modules/${id}`, data),
+  remove: (id: string) => requests.delete<any>(`/modules/${id}`),
+};
+
+const buildAuditQuery = (filter?: IAuditLogFilter) => {
+  const q = new URLSearchParams();
+  if (filter?.entityName) q.append("entityName", filter.entityName);
+  if (filter?.actionType) q.append("actionType", filter.actionType);
+  if (filter?.userId) q.append("userId", filter.userId);
+  if (filter?.fromDate) q.append("fromDate", filter.fromDate);
+  if (filter?.toDate) q.append("toDate", filter.toDate);
+  if (filter?.page) q.append("page", filter.page.toString());
+  if (filter?.pageSize) q.append("pageSize", filter.pageSize.toString());
+  if (filter?.allTenants) q.append("allTenants", "true");
+  return q.toString();
+};
+
+const auditLogs = {
+  list: (filter?: IAuditLogFilter) =>
+    requests.get<IApiResponse<IAuditLog[]>>(`/auditlogs?${buildAuditQuery(filter)}`),
+  exportCsv: async (filter?: IAuditLogFilter): Promise<Blob> => {
+    const response = await axiosInstance.get(`/auditlogs/export?${buildAuditQuery(filter)}`, {
+      responseType: "blob",
+    });
+    return response.data as Blob;
+  },
 };
 
 const notification = {
@@ -440,6 +487,9 @@ const workflowTemplates = {
 const apiHandler = {
   users,
   roles,
+  permissions,
+  modules,
+  auditLogs,
   menus,
   erpSettings,
   notification,
