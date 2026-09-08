@@ -14,6 +14,7 @@ export const CONFIG = `/configurations`;
 export const PARAMETERS = `parameters`
 export const NOTIFICATIONS = `/notifications`;
 export const ADMIN = `/admin`;
+export const OPERATIONS = `/operations`;
 
 
 // export const BILLING_REPORT = "/reports/billing-report";
@@ -43,4 +44,17 @@ export const APP_EDIT_DEPARTMENT_DRAWER = 'edit_dept_drawer'
 export const APP_WORKFLOW_DRAWER = 'workflow_drawer'
 export const APP_ROLE_DRAWER = 'role_drawer'
 export const APP_MENU_DRAWER = 'menu_drawer'
-export const APP_AUDIT_DETAIL_DRAWER = 'audit_detail_drawer'
+export const APP_AUDIT_DETAIL_DRAWER = 'audit_detail_drawer'
+
+// Operations page - tab / sub-tab selection
+export const OPERATIONS_TAB = 'tab'
+export const OPERATIONS_SUB_TAB = 'sub'
+
+// Operations page - modals
+export const APP_FACILITY_STAT_MODAL = 'facility_stat_modal'
+export const APP_FACILITY_COHORTS_MODAL = 'facility_cohorts_modal'
+export const APP_FACILITY_UNIT_MODAL = 'facility_unit_modal'
+export const APP_BATCH_MODAL = 'batch_modal'
+export const APP_MACHINE_USAGE_MODAL = 'machine_usage_modal'
+export const APP_VEHICLE_TRACKING_MODAL = 'vehicle_tracking_modal'
+export const APP_VEHICLE_REFUELING_MODAL = 'vehicle_refueling_modal'

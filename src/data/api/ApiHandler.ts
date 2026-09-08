@@ -484,6 +484,32 @@ const workflowTemplates = {
     requests.put<IApiResponse<IWorkflowTemplate>>(`/workflows/${id}/steps`, steps),
 };
 
+const operations = {
+  // Facility Management
+  getFacility: () => requests.get<any>(`/operations/facility`),
+  updateFacilityStats: (data: Record<string, number>) =>
+    requests.put<any>(`/operations/facility/stats`, data),
+  updateCohorts: (data: { cohort: number; count: number }[]) =>
+    requests.put<any>(`/operations/facility/cohorts`, data),
+  updateAllocationUnit: (id: string, data: { total: number; allocated: number }) =>
+    requests.put<any>(`/operations/facility/units/${id}`, data),
+
+  // Processing
+  listBatches: () => requests.get<any>(`/operations/batches`),
+  createBatch: (data: any) => requests.post<any>(`/operations/batches`, data),
+  listMachineUsageLogs: () => requests.get<any>(`/operations/machine-usage-logs`),
+  createMachineUsageLog: (data: any) =>
+    requests.post<any>(`/operations/machine-usage-logs`, data),
+
+  // Logistics
+  listVehicleTrackingLogs: () => requests.get<any>(`/operations/vehicle-tracking-logs`),
+  createVehicleTrackingLog: (data: any) =>
+    requests.post<any>(`/operations/vehicle-tracking-logs`, data),
+  listVehicleRefuelingLogs: () => requests.get<any>(`/operations/vehicle-refueling-logs`),
+  createVehicleRefuelingLog: (data: any) =>
+    requests.post<any>(`/operations/vehicle-refueling-logs`, data),
+};
+
 const apiHandler = {
   users,
   roles,
@@ -504,6 +530,7 @@ const apiHandler = {
   vendors,
   locations,
   workflowTemplates,
+  operations,
   get: requests.get,
   put: requests.put,
 };

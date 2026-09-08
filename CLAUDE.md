@@ -179,7 +179,7 @@ expect(badge).toHaveClass('bg-green-600');
 
 `src/data/api/ApiHandler.ts` exports a single `apiHandler` object. Full namespace list as of the approval workflow feature:
 
-`users`, `roles`, `menus`, `erpSettings`, `notification`, `dashboard`, `requisitions`, `itemRequests`, `incidents`, `monthlyReports`, `items`, `departments`, `categories`, `vendors`, `locations`, **`workflowTemplates`**
+`users`, `roles`, `menus`, `erpSettings`, `notification`, `dashboard`, `requisitions`, `itemRequests`, `incidents`, `monthlyReports`, `items`, `departments`, `categories`, `vendors`, `locations`, **`workflowTemplates`**, **`operations`**
 
 ### Key Methods Added for Approval Workflow
 
